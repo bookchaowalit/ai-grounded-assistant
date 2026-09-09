@@ -1,0 +1,27 @@
+[
+  {
+    "id": "knowledge-001",
+    "title": "Lake-first evidence boundary",
+    "text": "Lake-first evidence keeps approved source snapshots and manifests in durable landing and Bronze objects. A serving API is a projection and must retain lineage back to the source checksum.",
+    "source_url": "https://example.invalid/knowledge/lake-first-evidence",
+    "classification": "public-demo",
+    "updated_at": "2026-09-01T00:00:00Z"
+  },
+  {
+    "id": "knowledge-002",
+    "title": "Provider-neutral reference app",
+    "text": "A reference app remains provider-neutral and local until owner review approves a remote model or deployment. The baseline may use a deterministic adapter without external credentials.",
+    "source_url": "https://example.invalid/knowledge/provider-neutral-reference-app",
+    "classification": "public-demo",
+    "updated_at": "2026-09-01T00:00:00Z"
+  },
+  {
+    "id": "knowledge-003",
+    "title": "Universal runtime records",
+    "text": "Universal runtime records connect intake, discovery, architecture, design, delivery-plan, data-and-model, build, integration, verify, release, operate, improve, handoff-or-retire, and review.",
+    "source_url": "https://example.invalid/knowledge/universal-runtime-records",
+    "classification": "public-demo",
+    "updated_at": "2026-09-01T00:00:00Z"
+  }
+]
+

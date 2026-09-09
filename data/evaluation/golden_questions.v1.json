@@ -1,0 +1,21 @@
+[
+  {
+    "id": "lake-first",
+    "question": "Where should approved source evidence live?",
+    "expected_outcome": "grounded",
+    "expected_source_id": "knowledge-001"
+  },
+  {
+    "id": "provider-neutral",
+    "question": "How should a reference app handle provider changes?",
+    "expected_outcome": "grounded",
+    "expected_source_id": "knowledge-002"
+  },
+  {
+    "id": "unknown-weather",
+    "question": "What is the current weather in Bangkok?",
+    "expected_outcome": "fallback",
+    "expected_source_id": null
+  }
+]
+
