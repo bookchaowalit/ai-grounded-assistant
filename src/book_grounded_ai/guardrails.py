@@ -14,9 +14,17 @@ from __future__ import annotations
 import re
 import unicodedata
 
-# Zero-width, word-joiner, BOM and bidi override/isolate characters. They are
-# invisible in most UIs and are a common way to smuggle or hide instructions.
-_HIDDEN_CHARS = re.compile("[​-‏‪-‮⁠-⁤⁦-⁩﻿]")
+# Zero-width, word-joiner, BOM and bidi override/isolate characters, plus the
+# soft hyphen, combining grapheme joiner, Arabic letter mark and Mongolian
+# vowel separator (NFKC keeps all four, so "ig\u00adnore" evaded detection).
+# They are invisible in most UIs and are a common way to smuggle or hide
+# instructions.
+_HIDDEN_CHARS = re.compile("[\u00ad\u034f\u061c\u180e\u200b-\u200f\u202a-\u202e\u2060-\u2064\u2066-\u2069\ufeff]")
+
+# CR, CRLF and the Unicode line/paragraph separators start a new line for a
+# model or a renderer just like "\n"; the role-delimiter pattern anchors on
+# line starts, so they are folded to "\n" for detection.
+_LINE_BREAKS = re.compile("\r\n?|[\u2028\u2029]")
 
 # C0/C1 control characters other than tab, newline and carriage return.
 _CONTROL_CHARS = re.compile("[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f]")
@@ -95,6 +103,7 @@ def _canonical(text: str) -> str:
     # detection only; the caller's text is never rewritten with NFKC because
     # that would alter Thai (SARA AM) and other scripts used for retrieval.
     folded = unicodedata.normalize("NFKC", _HIDDEN_CHARS.sub("", text)).casefold()
+    folded = _LINE_BREAKS.sub("\n", folded)
     return re.sub(r"[ \t]+", " ", folded)
 
 

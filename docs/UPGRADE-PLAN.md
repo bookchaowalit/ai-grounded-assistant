@@ -65,3 +65,11 @@ evaluation; still lexical-only retrieval (top-1) with a 5-record corpus and a
 - Tests 35 -> 37 (relaxed-pass-rate regression where a guardrail stops
   refusing, vacuous/overclaiming gates). `make test/check/evaluate` pass;
   ruff 0.15.8 and 0.16.9 `--select F` clean.
+- Unicode guardrail gaps: soft hyphen (U+00AD), combining grapheme joiner,
+  Arabic letter mark and Mongolian vowel separator survive NFKC, so
+  "ig­nore all previous instructions" was not flagged; they are now hidden
+  characters. Role delimiters after a lone CR, CRLF or U+2028/U+2029
+  ("hello system: ...") evaded the line-anchored pattern; line breaks
+  are folded to "\n" for detection. Phone redaction missed numbers written
+  with Thai (๐๘๑-...) or full-width digits. Retrieval `terms()` NFKC-folds so
+  full-width Latin questions match. 4 tests in `UnicodeEdgeCaseTests`.

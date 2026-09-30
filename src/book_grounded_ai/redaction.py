@@ -55,8 +55,10 @@ _PATTERNS: tuple[tuple[str, re.Pattern[str], str], ...] = (
     ),
     (
         "phone",
-        # International (+CC ...) or Thai-style 0XX numbers with 9-10 digits.
-        re.compile(r"(?<![\w+])(?:\+\d{1,3}[\s-]?|0)\d(?:[\s-]?\d){7,9}(?!\w)"),
+        # International (+CC ...) or Thai-style 0XX numbers with 9-10 digits;
+        # the leading zero may be a Thai (๐) or full-width (０) digit, which
+        # ``\d`` already accepts for the rest of the number.
+        re.compile(r"(?<![\w+])(?:\+\d{1,3}[\s-]?|[0๐０])\d(?:[\s-]?\d){7,9}(?!\w)"),
         "[REDACTED_PHONE]",
     ),
 )

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+import unicodedata
 from dataclasses import dataclass
 from typing import Sequence
 
@@ -29,9 +30,10 @@ STOPWORDS = {
 
 
 def terms(text: str) -> set[str]:
+    # NFKC so full-width Latin ("ｅｖｉｄｅｎｃｅ") yields the same ASCII terms.
     return {
         token
-        for token in re.findall(r"[a-z0-9][a-z0-9_-]+", text.lower())
+        for token in re.findall(r"[a-z0-9][a-z0-9_-]+", unicodedata.normalize("NFKC", text).lower())
         if token not in STOPWORDS
     }
 
