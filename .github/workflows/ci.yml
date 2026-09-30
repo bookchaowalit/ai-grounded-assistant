@@ -1,0 +1,26 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Lint (pyflakes rules)
+        run: pipx run ruff check --select F src tests
+      - name: Unit and contract tests
+        run: make test
+      - name: Compile and corpus lineage validation
+        run: make check
+      - name: Golden-question evaluation (incl. prompt injection)
+        run: make evaluate

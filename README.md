@@ -85,7 +85,13 @@ curl -X POST \
 - `POST /v1/ask` รับ JSON ที่มีเพียง `question` และคืน `answer.v1`
 - คำถามยาวเกิน 500 ตัวอักษร, body เกิน 8 KiB หรือ schema ไม่ถูกต้องถูกปฏิเสธ
 - auth ใช้ Bearer token เมื่อ serve; rate limit เป็น in-memory ต่อ client
-- redaction รองรับ bearer token, `api_key`/`token`/`secret` patterns และ email
+- redaction รองรับ bearer token, `api_key`/`token`/`secret` patterns, provider
+  key (AWS/GitHub/`sk-`/Slack), JWT, private key block, email และเบอร์โทร
+- คำถามที่มี prompt injection (เช่น "ignore previous instructions", ขอ system
+  prompt, role delimiter) ได้ `data_status: "refused"` และไม่ retrieve context;
+  ทุก response มี `guardrail: {prompt_injection, categories}`
+- zero-width/bidi characters ถูกตัดออกจากคำถาม; control character อื่นถูกปฏิเสธ
+  (`INPUT004`); corpus ที่มี instruction-like content ไม่ถูกโหลด (`SCHEMA013`)
 - telemetry ไม่เก็บ raw question, raw answer หรือ matched secret
 - local adapter ไม่มี network, provider call, write API หรือ external action
 
