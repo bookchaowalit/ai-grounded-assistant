@@ -60,7 +60,12 @@ class ApiService:
     def _authorized(self, headers: dict[str, str]) -> bool:
         if self.read_token is None:
             return True
-        return hmac.compare_digest(headers.get("Authorization", ""), f"Bearer {self.read_token}")
+        # Compare bytes: hmac.compare_digest raises TypeError for non-ASCII str,
+        # and http.server decodes headers as latin-1, so a crafted header
+        # would otherwise crash the request instead of returning 401.
+        supplied = headers.get("Authorization", "").encode("utf-8", "surrogateescape")
+        expected = f"Bearer {self.read_token}".encode("utf-8")
+        return hmac.compare_digest(supplied, expected)
 
     def _body_question(self, headers: dict[str, str], body: bytes | str | None) -> str | Response:
         if body is None:
@@ -73,7 +78,7 @@ class ApiService:
             return self._response(415, error_payload("INPUT007", "Content-Type must be application/json"))
         try:
             value = json.loads(raw.decode("utf-8"))
-        except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        except (UnicodeDecodeError, json.JSONDecodeError):
             return self._response(400, error_payload("INPUT008", "request body must be valid UTF-8 JSON"))
         if not isinstance(value, dict) or set(value) != {"question"}:
             return self._response(400, error_payload("INPUT009", "request body must contain only question"))

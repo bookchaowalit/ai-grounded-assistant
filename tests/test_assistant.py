@@ -82,7 +82,7 @@ class AssistantContractTests(unittest.TestCase):
     def test_offline_evaluation_reaches_full_threshold(self) -> None:
         result = run_evaluation(self.assistant, REPOSITORY_ROOT)
         self.assertEqual(result["status"], "pass")
-        self.assertEqual(result["passed"], 3)
+        self.assertEqual(result["passed"], 5)
         self.assertEqual(result["failed"], 0)
 
 

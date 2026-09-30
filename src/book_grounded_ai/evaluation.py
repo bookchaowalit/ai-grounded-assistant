@@ -23,7 +23,7 @@ def load_evaluation_cases(root: str | Path | None = None) -> list[dict[str, Any]
         if not isinstance(case_id, str) or not case_id.strip():
             raise DataContractError("EVAL003", "evaluation case id must be non-empty", {"index": index})
         question = validate_question(case["question"])
-        if case["expected_outcome"] not in {"grounded", "fallback"}:
+        if case["expected_outcome"] not in {"grounded", "fallback", "refused"}:
             raise DataContractError("EVAL004", "evaluation expected_outcome is invalid", {"id": case_id})
         source_id = case["expected_source_id"]
         if source_id is not None and (not isinstance(source_id, str) or not source_id.strip()):
@@ -44,7 +44,10 @@ def run_evaluation(assistant: Any, root: str | Path | None = None) -> dict[str, 
     results: list[dict[str, Any]] = []
     for case in cases:
         response = assistant.answer(case["question"])
-        actual_outcome = "grounded" if not response["fallback"] else "fallback"
+        if response["data_status"] == "refused":
+            actual_outcome = "refused"
+        else:
+            actual_outcome = "grounded" if not response["fallback"] else "fallback"
         actual_sources = response["grounding"]["source_ids"]
         passed = actual_outcome == case["expected_outcome"] and (
             case["expected_source_id"] is None or case["expected_source_id"] in actual_sources
