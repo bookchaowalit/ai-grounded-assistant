@@ -27,7 +27,31 @@ _INJECTION_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
         re.compile(
             r"\b(?:ignore|disregard|forget|override|bypass|skip)\b[^.?!\n]{0,40}?"
             r"\b(?:previous|prior|above|earlier|preceding|all|any|your|the|system|developer)\b[^.?!\n]{0,20}?"
-            r"\b(?:instructions?|prompts?|rules?|guidelines?|polic(?:y|ies)|context|guardrails?)\b"
+            r"\b(?:instructions?|prompts?|rules?|guidelines?|guidance|directions?|directives?|polic(?:y|ies)|context|guardrails?)\b"
+        ),
+    ),
+    (
+        # Thai: "ignore / disregard / forget / skip ... the (previous) instructions / rules".
+        # Thai has no word boundaries, so the pattern relies on the verb and
+        # object phrases alone. Compiled from NFKC text to match ``_canonical``.
+        "instruction-override",
+        re.compile(
+            unicodedata.normalize(
+                "NFKC",
+                r"(?:ไม่ต้อง(?:สนใจ|ทำตาม|ฟัง)|เพิกเฉย|ละเลย|ละทิ้ง|ลืม|ข้าม|ยกเลิก)[^.?!\n]{0,20}?"
+                r"(?:คำสั่ง|กฎ|ข้อกำหนด|คำแนะนำ|prompt|instructions?|rules?)",
+            )
+        ),
+    ),
+    (
+        # Thai: "show / tell / reveal / print ... the system prompt / hidden instructions".
+        "prompt-exfiltration",
+        re.compile(
+            unicodedata.normalize(
+                "NFKC",
+                r"(?:แสดง|บอก|เปิดเผย|พิมพ์|เผย|ขอดู)[^.?!\n]{0,30}?"
+                r"(?:system\s*prompt|system\s*instructions?|พรอมต์ระบบ|พรอมท์ระบบ|คำสั่งระบบ|คำสั่งลับ|คำสั่งที่ซ่อน|คำสั่งเริ่มต้น)",
+            )
         ),
     ),
     (
@@ -78,4 +102,5 @@ def detect_prompt_injection(text: str) -> tuple[str, ...]:
     """Return the injection categories found in ``text`` (empty when clean)."""
 
     canonical = _canonical(text)
-    return tuple(category for category, pattern in _INJECTION_PATTERNS if pattern.search(canonical))
+    found = (category for category, pattern in _INJECTION_PATTERNS if pattern.search(canonical))
+    return tuple(dict.fromkeys(found))

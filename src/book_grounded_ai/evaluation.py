@@ -70,6 +70,33 @@ def run_evaluation(assistant: Any, root: str | Path | None = None) -> dict[str, 
         "status": "pass" if passed_count == len(results) else "fail",
         "passed": passed_count,
         "failed": len(results) - passed_count,
+        "per_outcome": outcome_metrics(results),
         "results": results,
     }
+
+
+OUTCOMES = ("grounded", "fallback", "refused")
+
+
+def outcome_metrics(results: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    """Per-outcome precision/recall over expected vs. actual outcome labels.
+
+    Precision is ``None`` when the adapter never predicted that outcome and
+    recall is ``None`` when the golden set has no case expecting it, so an
+    empty category is visible instead of silently scoring 1.0 or 0.0.
+    """
+
+    metrics: dict[str, dict[str, Any]] = {}
+    for outcome in OUTCOMES:
+        expected = sum(1 for r in results if r["expected_outcome"] == outcome)
+        predicted = sum(1 for r in results if r["actual_outcome"] == outcome)
+        true_positive = sum(1 for r in results if r["expected_outcome"] == outcome and r["actual_outcome"] == outcome)
+        metrics[outcome] = {
+            "expected": expected,
+            "predicted": predicted,
+            "true_positive": true_positive,
+            "precision": round(true_positive / predicted, 4) if predicted else None,
+            "recall": round(true_positive / expected, 4) if expected else None,
+        }
+    return metrics
 

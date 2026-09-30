@@ -8,7 +8,7 @@ import threading
 import time
 from dataclasses import dataclass, field
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from typing import Any
+from typing import Any, Callable
 from urllib.parse import urlsplit
 
 from .assistant import GroundedAssistant
@@ -25,22 +25,58 @@ class Response:
 
 
 class _RateLimiter:
-    def __init__(self, max_requests: int, window_seconds: float = 60.0) -> None:
+    """Sliding-window limiter whose memory is bounded by active clients.
+
+    Clients with no event inside the window are evicted on a periodic sweep,
+    and the number of tracked clients is capped so a flood of distinct client
+    ids cannot grow the table without bound.
+    """
+
+    def __init__(
+        self,
+        max_requests: int,
+        window_seconds: float = 60.0,
+        *,
+        max_clients: int = 10_000,
+        clock: Callable[[], float] = time.monotonic,
+    ) -> None:
         if max_requests < 1:
             raise ValueError("max_requests must be positive")
+        if max_clients < 1:
+            raise ValueError("max_clients must be positive")
         self.max_requests = max_requests
         self.window_seconds = window_seconds
+        self.max_clients = max_clients
+        self._clock = clock
         self._events: dict[str, list[float]] = {}
+        self._last_sweep = clock()
         self._lock = threading.Lock()
 
-    def allow(self, client_id: str) -> tuple[bool, int]:
-        now = time.monotonic()
+    def tracked_clients(self) -> int:
         with self._lock:
+            return len(self._events)
+
+    def _sweep(self, now: float) -> None:
+        idle = [client for client, events in self._events.items() if not events or now - events[-1] >= self.window_seconds]
+        for client in idle:
+            del self._events[client]
+        self._last_sweep = now
+
+    def allow(self, client_id: str) -> tuple[bool, int]:
+        now = self._clock()
+        with self._lock:
+            if now - self._last_sweep >= self.window_seconds or (
+                client_id not in self._events and len(self._events) >= self.max_clients
+            ):
+                self._sweep(now)
             events = [event for event in self._events.get(client_id, []) if now - event < self.window_seconds]
             if len(events) >= self.max_requests:
                 retry_after = max(1, int(self.window_seconds - (now - events[0])))
                 self._events[client_id] = events
                 return False, retry_after
+            if client_id not in self._events and len(self._events) >= self.max_clients:
+                # Every tracked client is still active: fail closed for new ids.
+                return False, max(1, int(self.window_seconds))
             events.append(now)
             self._events[client_id] = events
             return True, 0

@@ -25,7 +25,7 @@
 | Context budget | คำถามสูงสุด 500 chars; retrieve 1 source; source text สูงสุด 4,000 chars |
 | Output budget | คำตอบสูงสุด 2,000 chars |
 | Fallback | ถ้า overlap ต่ำกว่า 2 ให้ตอบ insufficient-context และไม่เดา |
-| Evaluation | golden set 5 cases (รวม prompt-injection 2 cases); required pass rate 100% |
+| Evaluation | golden set 13 cases (grounded 5, fallback 2, refused 6 รวม injection ภาษาไทย 2); required pass rate 100%; รายงาน precision/recall แยกตาม outcome |
 | Redaction | bearer token, API key/token/secret assignments, provider key (AWS/GitHub/`sk-`/Slack), JWT, private key block, email และเบอร์โทร |
 | Prompt injection | `guardrails.py` ตรวจ instruction-override, prompt-exfiltration, role-hijack และ role-delimiter (หลัง NFKC + ตัด zero-width) → ตอบ `data_status: refused` โดยไม่ retrieve และไม่ echo ข้อความ; corpus record ที่มี pattern เดียวกันหรือ hidden character ถูกปฏิเสธตอนโหลด (`SCHEMA013`/`SCHEMA014`) |
 | Latency target | local reference target `<100ms`; วัดใน telemetry แต่ยังไม่ใช่ SLO |

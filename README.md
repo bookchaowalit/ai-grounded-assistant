@@ -84,7 +84,7 @@ curl -X POST \
 - `GET /v1/metadata` แสดง adapter, budget, corpus lineage และ policy
 - `POST /v1/ask` รับ JSON ที่มีเพียง `question` และคืน `answer.v1`
 - คำถามยาวเกิน 500 ตัวอักษร, body เกิน 8 KiB หรือ schema ไม่ถูกต้องถูกปฏิเสธ
-- auth ใช้ Bearer token เมื่อ serve; rate limit เป็น in-memory ต่อ client
+- auth ใช้ Bearer token เมื่อ serve; rate limit เป็น in-memory ต่อ client (client ที่ idle เกิน window ถูกลบออก และจำกัดจำนวน client ที่ติดตามไว้)
 - redaction รองรับ bearer token, `api_key`/`token`/`secret` patterns, provider
   key (AWS/GitHub/`sk-`/Slack), JWT, private key block, email และเบอร์โทร
 - คำถามที่มี prompt injection (เช่น "ignore previous instructions", ขอ system

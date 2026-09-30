@@ -10,9 +10,9 @@ from pathlib import Path
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
-from book_grounded_ai.api import ApiService, create_server
+from book_grounded_ai.api import ApiService, _RateLimiter, create_server
 from book_grounded_ai.assistant import GroundedAssistant
-from book_grounded_ai.evaluation import run_evaluation
+from book_grounded_ai.evaluation import outcome_metrics, run_evaluation
 from book_grounded_ai.schema import DataContractError
 from book_grounded_ai.store import load_corpus
 from book_grounded_ai.telemetry import SafeTelemetrySink
@@ -82,8 +82,62 @@ class AssistantContractTests(unittest.TestCase):
     def test_offline_evaluation_reaches_full_threshold(self) -> None:
         result = run_evaluation(self.assistant, REPOSITORY_ROOT)
         self.assertEqual(result["status"], "pass")
-        self.assertEqual(result["passed"], 5)
+        self.assertEqual(result["passed"], 13)
         self.assertEqual(result["failed"], 0)
+        for outcome in ("grounded", "fallback", "refused"):
+            with self.subTest(outcome=outcome):
+                self.assertGreaterEqual(result["per_outcome"][outcome]["expected"], 2)
+                self.assertEqual(result["per_outcome"][outcome]["precision"], 1.0)
+                self.assertEqual(result["per_outcome"][outcome]["recall"], 1.0)
+
+    def test_outcome_metrics_report_precision_and_recall(self) -> None:
+        results = [
+            {"expected_outcome": "grounded", "actual_outcome": "grounded"},
+            {"expected_outcome": "grounded", "actual_outcome": "fallback"},
+            {"expected_outcome": "fallback", "actual_outcome": "fallback"},
+        ]
+        metrics = outcome_metrics(results)
+        self.assertEqual(metrics["grounded"]["precision"], 1.0)
+        self.assertEqual(metrics["grounded"]["recall"], 0.5)
+        self.assertEqual(metrics["fallback"]["precision"], 0.5)
+        self.assertEqual(metrics["fallback"]["recall"], 1.0)
+        self.assertIsNone(metrics["refused"]["precision"])
+        self.assertIsNone(metrics["refused"]["recall"])
+
+
+class RateLimiterTests(unittest.TestCase):
+    def test_idle_clients_are_evicted(self) -> None:
+        now = [0.0]
+        limiter = _RateLimiter(2, window_seconds=10.0, clock=lambda: now[0])
+        for index in range(50):
+            self.assertEqual(limiter.allow(f"client-{index}"), (True, 0))
+        self.assertEqual(limiter.tracked_clients(), 50)
+        now[0] = 11.0
+        self.assertEqual(limiter.allow("fresh"), (True, 0))
+        self.assertEqual(limiter.tracked_clients(), 1)
+
+    def test_limit_still_applies_within_window(self) -> None:
+        now = [0.0]
+        limiter = _RateLimiter(2, window_seconds=10.0, clock=lambda: now[0])
+        self.assertTrue(limiter.allow("a")[0])
+        self.assertTrue(limiter.allow("a")[0])
+        allowed, retry_after = limiter.allow("a")
+        self.assertFalse(allowed)
+        self.assertGreaterEqual(retry_after, 1)
+        now[0] = 10.5
+        self.assertTrue(limiter.allow("a")[0])
+
+    def test_client_table_is_capped(self) -> None:
+        now = [0.0]
+        limiter = _RateLimiter(5, window_seconds=10.0, max_clients=3, clock=lambda: now[0])
+        for name in ("a", "b", "c"):
+            self.assertTrue(limiter.allow(name)[0])
+        self.assertFalse(limiter.allow("d")[0])
+        self.assertTrue(limiter.allow("a")[0])
+        self.assertLessEqual(limiter.tracked_clients(), 3)
+        now[0] = 10.5
+        self.assertTrue(limiter.allow("d")[0])
+        self.assertLessEqual(limiter.tracked_clients(), 3)
 
 
 class HttpBoundaryTests(unittest.TestCase):
