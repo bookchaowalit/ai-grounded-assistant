@@ -6,6 +6,7 @@ from datetime import datetime
 from typing import Any
 
 from .config import CORPUS_NAME, CORPUS_SCHEMA_VERSION, MAX_QUESTION_CHARS
+from .guardrails import detect_prompt_injection, has_control_characters, strip_hidden_characters
 
 
 class DataContractError(ValueError):
@@ -60,12 +61,29 @@ def validate_knowledge_record(value: Any, *, index: int) -> dict[str, str]:
     source_url = _non_empty_string(record["source_url"], field="source_url", code="SCHEMA003")
     if not source_url.startswith("https://example.invalid/"):
         raise DataContractError("SCHEMA005", "fixture source_url must use the sanitized example domain", {"index": index})
+    title = _non_empty_string(record["title"], field="title", code="SCHEMA003")
+    for field, value in (("title", title), ("text", text)):
+        if strip_hidden_characters(value)[1] or has_control_characters(value.replace("\n", " ")):
+            raise DataContractError(
+                "SCHEMA014",
+                "knowledge record contains hidden or control characters",
+                {"index": index, "field": field},
+            )
+        categories = detect_prompt_injection(value)
+        if categories:
+            # Indirect prompt injection: corpus text is context for a future
+            # generative adapter and must never carry instructions.
+            raise DataContractError(
+                "SCHEMA013",
+                "knowledge record contains instruction-like content",
+                {"index": index, "field": field, "categories": list(categories)},
+            )
     classification = _non_empty_string(record["classification"], field="classification", code="SCHEMA003")
     if classification != "public-demo":
         raise DataContractError("SCHEMA006", "local corpus classification must be public-demo", {"index": index})
     return {
         "id": _non_empty_string(record["id"], field="id", code="SCHEMA003"),
-        "title": _non_empty_string(record["title"], field="title", code="SCHEMA003"),
+        "title": title,
         "text": text,
         "source_url": source_url,
         "classification": classification,
@@ -146,9 +164,15 @@ def validate_manifest(value: Any) -> dict[str, Any]:
 
 
 def validate_question(value: Any) -> str:
+    """Validate a user question and strip invisible formatting characters.
+
+    Zero-width and bidi-override characters are removed (they can hide text
+    from a human reviewer); other control characters are rejected.
+    """
     if not isinstance(value, str):
         raise DataContractError("INPUT001", "question must be a string")
-    question = value.strip()
+    question, _ = strip_hidden_characters(value)
+    question = question.strip()
     if not question:
         raise DataContractError("INPUT002", "question must not be empty")
     if len(question) > MAX_QUESTION_CHARS:
@@ -157,7 +181,7 @@ def validate_question(value: Any) -> str:
             "question exceeds the context budget",
             {"max_chars": MAX_QUESTION_CHARS},
         )
-    if "\x00" in question:
+    if has_control_characters(question):
         raise DataContractError("INPUT004", "question contains an unsupported control character")
     return question
 

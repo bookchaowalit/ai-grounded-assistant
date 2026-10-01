@@ -58,7 +58,7 @@ PYTHONPATH=src python3 -m book_grounded_ai.cli serve --port 8090
 ```
 
 อนุญาต server แบบไม่มี token ได้เฉพาะ local development ที่ระบุ flag นี้
-อย่างชัดเจน:
+อย่างชัดเจน และ bind ได้เฉพาะ `--host` แบบ loopback (ค่าเริ่มต้น `127.0.0.1`):
 
 ```bash
 PYTHONPATH=src python3 -m book_grounded_ai.cli serve \
@@ -84,8 +84,14 @@ curl -X POST \
 - `GET /v1/metadata` แสดง adapter, budget, corpus lineage และ policy
 - `POST /v1/ask` รับ JSON ที่มีเพียง `question` และคืน `answer.v1`
 - คำถามยาวเกิน 500 ตัวอักษร, body เกิน 8 KiB หรือ schema ไม่ถูกต้องถูกปฏิเสธ
-- auth ใช้ Bearer token เมื่อ serve; rate limit เป็น in-memory ต่อ client
-- redaction รองรับ bearer token, `api_key`/`token`/`secret` patterns และ email
+- auth ใช้ Bearer token เมื่อ serve; rate limit เป็น in-memory ต่อ client (client ที่ idle เกิน window ถูกลบออก และจำกัดจำนวน client ที่ติดตามไว้)
+- redaction รองรับ bearer token, `api_key`/`token`/`secret` patterns, provider
+  key (AWS/GitHub/`sk-`/Slack), JWT, private key block, email และเบอร์โทร
+- คำถามที่มี prompt injection (เช่น "ignore previous instructions", ขอ system
+  prompt, role delimiter) ได้ `data_status: "refused"` และไม่ retrieve context;
+  ทุก response มี `guardrail: {prompt_injection, categories}`
+- zero-width/bidi characters ถูกตัดออกจากคำถาม; control character อื่นถูกปฏิเสธ
+  (`INPUT004`); corpus ที่มี instruction-like content ไม่ถูกโหลด (`SCHEMA013`)
 - telemetry ไม่เก็บ raw question, raw answer หรือ matched secret
 - local adapter ไม่มี network, provider call, write API หรือ external action
 

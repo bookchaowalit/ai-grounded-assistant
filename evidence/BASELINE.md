@@ -19,9 +19,9 @@ make demo
 
 ## Observed result
 
-- `make test`: ผ่าน 13 tests
+- `make test`: ผ่าน 37 tests (รวม `tests/test_guardrails.py`) — pass 3
 - `make check`: compile และ corpus `validate` ผ่าน
-- `make evaluate`: golden questions 3/3 ผ่าน (100%)
+- `make evaluate`: golden questions 17/17 ผ่าน (100%) บน corpus 5 records รวม prompt-injection 6 cases (ภาษาไทย 2); precision/recall ต่อ outcome = 1.0; safety gates (`refused` recall, `grounded` precision) ผ่าน
 - `make demo`: known question คืน grounded answer พร้อม citation
 - HTTP smoke tests: ask contract และ unauthorized response ผ่าน
 - tampered manifest: fail closed

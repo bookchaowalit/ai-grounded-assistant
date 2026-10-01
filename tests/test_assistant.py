@@ -10,9 +10,9 @@ from pathlib import Path
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
-from book_grounded_ai.api import ApiService, create_server
+from book_grounded_ai.api import ApiService, _RateLimiter, create_server
 from book_grounded_ai.assistant import GroundedAssistant
-from book_grounded_ai.evaluation import run_evaluation
+from book_grounded_ai.evaluation import evaluate_gates, outcome_metrics, run_evaluation
 from book_grounded_ai.schema import DataContractError
 from book_grounded_ai.store import load_corpus
 from book_grounded_ai.telemetry import SafeTelemetrySink
@@ -26,15 +26,15 @@ class CorpusContractTests(unittest.TestCase):
         corpus = load_corpus(REPOSITORY_ROOT)
         self.assertEqual(corpus.schema_version, "knowledge.v1")
         self.assertEqual(corpus.dataset, "approved_knowledge")
-        self.assertEqual(len(corpus.records), 3)
+        self.assertEqual(len(corpus.records), 5)
         self.assertEqual(corpus.lineage.privacy_class, "public-demo")
-        self.assertEqual(corpus.lineage.record_count, 3)
+        self.assertEqual(corpus.lineage.record_count, 5)
 
     def test_tampered_manifest_fails_closed(self) -> None:
         manifest_path = REPOSITORY_ROOT / "data" / "manifests" / "knowledge_chunks.v1.manifest.json"
         original = manifest_path.read_text(encoding="utf-8")
         try:
-            manifest_path.write_text(original.replace('"record_count": 3', '"record_count": 4'), encoding="utf-8")
+            manifest_path.write_text(original.replace('"record_count": 5', '"record_count": 6'), encoding="utf-8")
             with self.assertRaisesRegex(DataContractError, "record_count"):
                 load_corpus(REPOSITORY_ROOT)
         finally:
@@ -82,8 +82,104 @@ class AssistantContractTests(unittest.TestCase):
     def test_offline_evaluation_reaches_full_threshold(self) -> None:
         result = run_evaluation(self.assistant, REPOSITORY_ROOT)
         self.assertEqual(result["status"], "pass")
-        self.assertEqual(result["passed"], 3)
+        self.assertEqual(result["passed"], 17)
         self.assertEqual(result["failed"], 0)
+        for outcome in ("grounded", "fallback", "refused"):
+            with self.subTest(outcome=outcome):
+                self.assertGreaterEqual(result["per_outcome"][outcome]["expected"], 2)
+                self.assertEqual(result["per_outcome"][outcome]["precision"], 1.0)
+                self.assertEqual(result["per_outcome"][outcome]["recall"], 1.0)
+
+    def test_safety_gates_hold_even_when_pass_rate_is_relaxed(self) -> None:
+        full = run_evaluation(self.assistant, REPOSITORY_ROOT)
+        self.assertEqual([g["passed"] for g in full["gates"]], [True, True])
+
+        class NeverRefuses:
+            """Answers injections instead of refusing (a regressed guardrail)."""
+
+            def __init__(self, inner: GroundedAssistant) -> None:
+                self.inner = inner
+
+            def metadata(self) -> dict:
+                return self.inner.metadata()
+
+            def answer(self, question: str) -> dict:
+                response = self.inner.answer(question)
+                if response["data_status"] == "refused":
+                    return {**response, "data_status": "ok", "fallback": True,
+                            "grounding": {**response["grounding"], "source_ids": []}}
+                return response
+
+        relaxed = run_evaluation(NeverRefuses(self.assistant), REPOSITORY_ROOT, required_pass_rate=0.5)
+        self.assertGreaterEqual(relaxed["pass_rate"], 0.5)
+        self.assertEqual(relaxed["status"], "fail")
+        failed = [g for g in relaxed["gates"] if not g["passed"]]
+        self.assertEqual([(g["outcome"], g["metric"], g["actual"]) for g in failed], [("refused", "recall", 0.0)])
+        with self.assertRaises(ValueError):
+            run_evaluation(self.assistant, REPOSITORY_ROOT, required_pass_rate=1.5)
+
+    def test_gates_fail_when_vacuous_or_below_floor(self) -> None:
+        empty = outcome_metrics([{"expected_outcome": "fallback", "actual_outcome": "fallback"}])
+        self.assertEqual([g["passed"] for g in evaluate_gates(empty)], [False, False])
+        overclaims = outcome_metrics(
+            [
+                {"expected_outcome": "refused", "actual_outcome": "refused"},
+                {"expected_outcome": "grounded", "actual_outcome": "grounded"},
+                {"expected_outcome": "fallback", "actual_outcome": "grounded"},
+            ]
+        )
+        checks = evaluate_gates(overclaims)
+        self.assertEqual(checks[0]["passed"], True)
+        self.assertEqual((checks[1]["metric"], checks[1]["actual"], checks[1]["passed"]), ("precision", 0.5, False))
+
+    def test_outcome_metrics_report_precision_and_recall(self) -> None:
+        results = [
+            {"expected_outcome": "grounded", "actual_outcome": "grounded"},
+            {"expected_outcome": "grounded", "actual_outcome": "fallback"},
+            {"expected_outcome": "fallback", "actual_outcome": "fallback"},
+        ]
+        metrics = outcome_metrics(results)
+        self.assertEqual(metrics["grounded"]["precision"], 1.0)
+        self.assertEqual(metrics["grounded"]["recall"], 0.5)
+        self.assertEqual(metrics["fallback"]["precision"], 0.5)
+        self.assertEqual(metrics["fallback"]["recall"], 1.0)
+        self.assertIsNone(metrics["refused"]["precision"])
+        self.assertIsNone(metrics["refused"]["recall"])
+
+
+class RateLimiterTests(unittest.TestCase):
+    def test_idle_clients_are_evicted(self) -> None:
+        now = [0.0]
+        limiter = _RateLimiter(2, window_seconds=10.0, clock=lambda: now[0])
+        for index in range(50):
+            self.assertEqual(limiter.allow(f"client-{index}"), (True, 0))
+        self.assertEqual(limiter.tracked_clients(), 50)
+        now[0] = 11.0
+        self.assertEqual(limiter.allow("fresh"), (True, 0))
+        self.assertEqual(limiter.tracked_clients(), 1)
+
+    def test_limit_still_applies_within_window(self) -> None:
+        now = [0.0]
+        limiter = _RateLimiter(2, window_seconds=10.0, clock=lambda: now[0])
+        self.assertTrue(limiter.allow("a")[0])
+        self.assertTrue(limiter.allow("a")[0])
+        allowed, retry_after = limiter.allow("a")
+        self.assertFalse(allowed)
+        self.assertGreaterEqual(retry_after, 1)
+        now[0] = 10.5
+        self.assertTrue(limiter.allow("a")[0])
+
+    def test_client_table_is_capped(self) -> None:
+        now = [0.0]
+        limiter = _RateLimiter(5, window_seconds=10.0, max_clients=3, clock=lambda: now[0])
+        for name in ("a", "b", "c"):
+            self.assertTrue(limiter.allow(name)[0])
+        self.assertFalse(limiter.allow("d")[0])
+        self.assertTrue(limiter.allow("a")[0])
+        self.assertLessEqual(limiter.tracked_clients(), 3)
+        now[0] = 10.5
+        self.assertTrue(limiter.allow("d")[0])
+        self.assertLessEqual(limiter.tracked_clients(), 3)
 
 
 class HttpBoundaryTests(unittest.TestCase):

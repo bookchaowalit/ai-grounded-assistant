@@ -7,7 +7,7 @@
   "retention_class": "fixture-until-review",
   "source_object": "data/landing/knowledge_sources.json",
   "bronze_object": "data/bronze/knowledge_chunks.v1.json",
-  "source_sha256": "5a73a59da1ebffe24c7fec4f2a0f1baee6cdd0be117b26a7c9e722a345928e19",
-  "bronze_sha256": "de7138c84f01cefb4dbd5a4e19e9a1cdf082ff3fb2a11231a5a4128fabb1653b",
-  "record_count": 3
+  "source_sha256": "c751b1050e29d2f770e97e2a8c233ec77e6930a3b62c33b8d40e6e9c424c867e",
+  "bronze_sha256": "7daf6459131891143e1b660902f962bea92c803f43ab49c9975a44c272f62d88",
+  "record_count": 5
 }

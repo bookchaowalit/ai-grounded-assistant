@@ -25,8 +25,9 @@
 | Context budget | คำถามสูงสุด 500 chars; retrieve 1 source; source text สูงสุด 4,000 chars |
 | Output budget | คำตอบสูงสุด 2,000 chars |
 | Fallback | ถ้า overlap ต่ำกว่า 2 ให้ตอบ insufficient-context และไม่เดา |
-| Evaluation | golden set 3 cases; required pass rate 100% |
-| Redaction | bearer token, API key/token/secret assignments และ email |
+| Evaluation | golden set 17 cases (grounded 8 รวม ambiguous 1, fallback 3, refused 6 รวม injection ภาษาไทย 2) บน corpus 5 records; required pass rate 100%; รายงาน precision/recall แยกตาม outcome และมี safety gate ที่ไม่ผ่อนตาม pass rate: `refused` recall = 1.0 และ `grounded` precision = 1.0 (gate ที่ไม่มี case ถือว่า fail) |
+| Redaction | bearer token, API key/token/secret assignments, provider key (AWS/GitHub/`sk-`/Slack), JWT, private key block, email และเบอร์โทร |
+| Prompt injection | `guardrails.py` ตรวจ instruction-override, prompt-exfiltration, role-hijack และ role-delimiter (หลัง NFKC + ตัด zero-width) → ตอบ `data_status: refused` โดยไม่ retrieve และไม่ echo ข้อความ; corpus record ที่มี pattern เดียวกันหรือ hidden character ถูกปฏิเสธตอนโหลด (`SCHEMA013`/`SCHEMA014`) |
 | Latency target | local reference target `<100ms`; วัดใน telemetry แต่ยังไม่ใช่ SLO |
 | Rollback | คืน corpus snapshot/manifest ที่ผ่าน hash แล้วรัน `make test` ใหม่ |
 
@@ -35,7 +36,7 @@
 - corpus classification คือ `public-demo`; fixture URLs ใช้ `example.invalid`
 - request body ต้องเป็น JSON object ที่มี field `question` เพียง field เดียว
 - server bind default เป็น `127.0.0.1`; หากไม่มี token ต้องใช้ explicit
-  `--allow-unauthenticated-local`
+  `--allow-unauthenticated-local` ซึ่งยอมรับเฉพาะ `--host` แบบ loopback
 - error response ไม่ echo question หรือ raw payload
 - telemetry เก็บ hash ของ redacted question/answer, source ids, outcome และ
   latency เท่านั้น; ไม่มี raw prompt, raw response หรือ secret value
@@ -49,7 +50,8 @@ manifest tamper, source/Bronze contract, auth, malformed body, rate limit,
 HTTP server และ CLI evaluation
 
 ยังเป็น gap ก่อน production: real Parquet/Object Storage, vector retrieval,
-provider/model adapter, prompt injection evaluation, model quality benchmark,
+provider/model adapter, prompt injection evaluation ที่กว้างกว่า pattern set (เช่น
+multilingual/paraphrase red-team set), model quality benchmark,
 cost accounting, distributed rate limit, persistent telemetry, access review,
 deletion/retention automation และ owner-approved release record
 

@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from .config import CORPUS_NAME, CORPUS_SCHEMA_VERSION, MANIFEST_PATH, REPOSITORY_ROOT
+from .config import CORPUS_NAME, CORPUS_SCHEMA_VERSION, REPOSITORY_ROOT
 from .schema import DataContractError, validate_bronze_document, validate_knowledge_records, validate_manifest
 
 

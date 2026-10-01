@@ -22,6 +22,21 @@
     "source_url": "https://example.invalid/knowledge/universal-runtime-records",
     "classification": "public-demo",
     "updated_at": "2026-09-01T00:00:00Z"
+  },
+  {
+    "id": "knowledge-004",
+    "title": "Refusal before retrieval",
+    "text": "Questions that attempt to change the assistant's rules or extract its hidden configuration are refused before retrieval. A refusal returns no retrieved text and does not repeat the question back to the caller.",
+    "source_url": "https://example.invalid/knowledge/refusal-before-retrieval",
+    "classification": "public-demo",
+    "updated_at": "2026-09-30T00:00:00Z"
+  },
+  {
+    "id": "knowledge-005",
+    "title": "Question redaction and hashed telemetry",
+    "text": "Questions are redacted before they are processed: email addresses, phone numbers, bearer tokens, API keys and JWTs become placeholders. Telemetry keeps only SHA-256 hashes of the redacted question and the answer, never raw text.",
+    "source_url": "https://example.invalid/knowledge/question-redaction-telemetry",
+    "classification": "public-demo",
+    "updated_at": "2026-09-30T00:00:00Z"
   }
 ]
-
