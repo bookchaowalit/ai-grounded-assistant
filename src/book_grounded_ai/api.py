@@ -17,6 +17,21 @@ from .schema import DataContractError, error_payload
 from .store import Corpus, load_corpus
 
 
+# Route access matrix: path -> (access level, the one allowed method, 405
+# message). "public" needs nothing; "reader" needs `Authorization: Bearer
+# $BOOK_GROUNDED_AI_TOKEN` when a token is configured. `/v1/ask` is POST
+# because the question travels in the body; it changes no state.
+# `ApiService.handle` dispatches through this table and
+# tests/test_route_access.py pins it.
+PUBLIC = "public"
+READER = "reader"
+ROUTE_ACCESS: dict[str, tuple[str, str, str]] = {
+    "/healthz": (PUBLIC, "GET", "health endpoint is read-only"),
+    "/v1/metadata": (READER, "GET", "metadata endpoint is read-only"),
+    "/v1/ask": (READER, "POST", "ask endpoint requires POST"),
+}
+
+
 @dataclass(frozen=True)
 class Response:
     status: int
@@ -139,11 +154,15 @@ class ApiService:
             )
         path = urlsplit(target).path or "/"
         method = method.upper()
-        if path not in {"/healthz", "/v1/metadata", "/v1/ask"}:
+        route = ROUTE_ACCESS.get(path)
+        if route is None:
             return self._response(404, error_payload("API404", "route not found"))
+        level, allowed_method, method_message = route
+        if method != allowed_method:
+            return self._response(405, error_payload("API405", method_message), **{"Allow": allowed_method})
+        if level != PUBLIC and not self._authorized(request_headers):
+            return self._response(401, error_payload("AUTH001", "Bearer authentication required"), **{"WWW-Authenticate": "Bearer"})
         if path == "/healthz":
-            if method != "GET":
-                return self._response(405, error_payload("API405", "health endpoint is read-only"), **{"Allow": "GET"})
             return self._response(
                 200,
                 {
@@ -156,15 +175,7 @@ class ApiService:
                 },
             )
         if path == "/v1/metadata":
-            if method != "GET":
-                return self._response(405, error_payload("API405", "metadata endpoint is read-only"), **{"Allow": "GET"})
-            if not self._authorized(request_headers):
-                return self._response(401, error_payload("AUTH001", "Bearer authentication required"), **{"WWW-Authenticate": "Bearer"})
             return self._response(200, self.assistant.metadata())
-        if method != "POST":
-            return self._response(405, error_payload("API405", "ask endpoint requires POST"), **{"Allow": "POST"})
-        if not self._authorized(request_headers):
-            return self._response(401, error_payload("AUTH001", "Bearer authentication required"), **{"WWW-Authenticate": "Bearer"})
         question = self._body_question(request_headers, body)
         if isinstance(question, Response):
             return question

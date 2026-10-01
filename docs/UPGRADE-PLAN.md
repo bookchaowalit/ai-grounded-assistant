@@ -73,3 +73,11 @@ evaluation; still lexical-only retrieval (top-1) with a 5-record corpus and a
   are folded to "\n" for detection. Phone redaction missed numbers written
   with Thai (๐๘๑-...) or full-width digits. Retrieval `terms()` NFKC-folds so
   full-width Latin questions match. 4 tests in `UnicodeEdgeCaseTests`.
+- Route access matrix: `api.ROUTE_ACCESS` (`/healthz` public GET,
+  `/v1/metadata` token GET, `/v1/ask` token POST) is what `handle()`
+  dispatches on; `tests/test_route_access.py` pins it, keeps non-GET routes
+  off `public`, and drives every route x 7 methods x (anonymous, wrong
+  token, token): 405 + `Allow` / 401 / 200.
+- Network exposure: `serve --allow-unauthenticated-local` now refuses a
+  non-loopback `--host` (`CONFIG002`); before, an anonymous `/v1/ask` could
+  be served on `0.0.0.0`. Default host stays `127.0.0.1`; no compose here.

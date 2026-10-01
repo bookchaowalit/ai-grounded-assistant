@@ -10,6 +10,7 @@ CORPUS_NAME = "approved_knowledge"
 MODEL_ADAPTER = "deterministic-extractive-v1"
 TOKEN_ENV = "BOOK_GROUNDED_AI_TOKEN"
 DEFAULT_HOST = "127.0.0.1"
+LOOPBACK_HOSTS = frozenset({"127.0.0.1", "localhost", "::1"})
 DEFAULT_PORT = 8090
 MAX_QUESTION_CHARS = 500
 MAX_BODY_BYTES = 8 * 1024
