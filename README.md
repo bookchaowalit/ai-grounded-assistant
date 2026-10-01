@@ -58,7 +58,7 @@ PYTHONPATH=src python3 -m book_grounded_ai.cli serve --port 8090
 ```
 
 อนุญาต server แบบไม่มี token ได้เฉพาะ local development ที่ระบุ flag นี้
-อย่างชัดเจน:
+อย่างชัดเจน และ bind ได้เฉพาะ `--host` แบบ loopback (ค่าเริ่มต้น `127.0.0.1`):
 
 ```bash
 PYTHONPATH=src python3 -m book_grounded_ai.cli serve \

@@ -36,7 +36,7 @@
 - corpus classification คือ `public-demo`; fixture URLs ใช้ `example.invalid`
 - request body ต้องเป็น JSON object ที่มี field `question` เพียง field เดียว
 - server bind default เป็น `127.0.0.1`; หากไม่มี token ต้องใช้ explicit
-  `--allow-unauthenticated-local`
+  `--allow-unauthenticated-local` ซึ่งยอมรับเฉพาะ `--host` แบบ loopback
 - error response ไม่ echo question หรือ raw payload
 - telemetry เก็บ hash ของ redacted question/answer, source ids, outcome และ
   latency เท่านั้น; ไม่มี raw prompt, raw response หรือ secret value
