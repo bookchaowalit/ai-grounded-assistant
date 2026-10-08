@@ -1,0 +1,8 @@
+system_id: bookchaowalit/book-apps/tools/book-grounded-ai-assistant
+prefix: CARD
+brand: "GROUNDED AI ASSISTANT"
+subtitle: "reference app ของ AI assistant ที่ตอบพร้อม citation หรือ fallback เมื่อหลักฐานไม่พอ"
+footer: "Book Grounded AI Assistant — Product Card"
+color: "#2f4b6e"
+audience: internal
+tier: L0
