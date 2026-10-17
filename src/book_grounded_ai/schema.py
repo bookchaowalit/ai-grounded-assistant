@@ -38,7 +38,7 @@ def _non_empty_string(value: Any, *, field: str, code: str) -> str:
 def _timestamp(value: Any, *, field: str, code: str) -> str:
     result = _non_empty_string(value, field=field, code=code)
     try:
-        parsed = datetime.fromisoformat(result.replace("Z", "+00:00"))  # noqa: FURB162 - keep the explicit UTC normalisation
+        parsed = datetime.fromisoformat(result.replace("Z", "+00:00"))  # noqa: FURB162 - keeps Z-normalisation; removing it changes which inputs are accepted
     except ValueError as exc:
         raise DataContractError(code, f"{field} must be ISO-8601", {"field": field}) from exc
     if parsed.tzinfo is None:
