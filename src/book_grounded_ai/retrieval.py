@@ -45,7 +45,9 @@ class RetrievalMatch:
     matched_terms: tuple[str, ...]
 
 
-def retrieve(records: Sequence[dict[str, str]], question: str, *, top_k: int, minimum_score: int) -> list[RetrievalMatch]:
+def retrieve(
+    records: Sequence[dict[str, str]], question: str, *, top_k: int, minimum_score: int
+) -> list[RetrievalMatch]:
     question_terms = terms(question)
     matches: list[RetrievalMatch] = []
     for record in records:
@@ -55,4 +57,3 @@ def retrieve(records: Sequence[dict[str, str]], question: str, *, top_k: int, mi
             matches.append(RetrievalMatch(dict(record), len(overlap), tuple(overlap)))
     matches.sort(key=lambda match: (-match.score, match.record["id"]))
     return matches[:top_k]
-

@@ -72,7 +72,9 @@ class _RateLimiter:
             return len(self._events)
 
     def _sweep(self, now: float) -> None:
-        idle = [client for client, events in self._events.items() if not events or now - events[-1] >= self.window_seconds]
+        idle = [
+            client for client, events in self._events.items() if not events or now - events[-1] >= self.window_seconds
+        ]
         for client in idle:
             del self._events[client]
         self._last_sweep = now
@@ -123,7 +125,9 @@ class ApiService:
             return self._response(400, error_payload("INPUT005", "JSON body is required"))
         raw = body.encode("utf-8") if isinstance(body, str) else body
         if len(raw) > MAX_BODY_BYTES:
-            return self._response(413, error_payload("INPUT006", "request body exceeds the local limit", {"max_bytes": MAX_BODY_BYTES}))
+            return self._response(
+                413, error_payload("INPUT006", "request body exceeds the local limit", {"max_bytes": MAX_BODY_BYTES})
+            )
         content_type = headers.get("Content-Type", "").split(";", 1)[0].strip().lower()
         if content_type != "application/json":
             return self._response(415, error_payload("INPUT007", "Content-Type must be application/json"))
@@ -161,7 +165,9 @@ class ApiService:
         if method != allowed_method:
             return self._response(405, error_payload("API405", method_message), **{"Allow": allowed_method})
         if level != PUBLIC and not self._authorized(request_headers):
-            return self._response(401, error_payload("AUTH001", "Bearer authentication required"), **{"WWW-Authenticate": "Bearer"})
+            return self._response(
+                401, error_payload("AUTH001", "Bearer authentication required"), **{"WWW-Authenticate": "Bearer"}
+            )
         if path == "/healthz":
             return self._response(
                 200,
@@ -247,4 +253,3 @@ class DataApiRequestHandler(BaseHTTPRequestHandler):
 
 def create_server(service: ApiService, host: str = "127.0.0.1", port: int = 0) -> DataApiServer:
     return DataApiServer((host, port), service)
-

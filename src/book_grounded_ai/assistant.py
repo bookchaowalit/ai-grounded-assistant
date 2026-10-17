@@ -142,4 +142,3 @@ class GroundedAssistant:
         payload["guardrail"] = guardrail
         payload["telemetry"] = {"event_id": event.event_id, "raw_payload_persisted": False}
         return payload
-

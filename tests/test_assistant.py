@@ -106,8 +106,12 @@ class AssistantContractTests(unittest.TestCase):
             def answer(self, question: str) -> dict:
                 response = self.inner.answer(question)
                 if response["data_status"] == "refused":
-                    return {**response, "data_status": "ok", "fallback": True,
-                            "grounding": {**response["grounding"], "source_ids": []}}
+                    return {
+                        **response,
+                        "data_status": "ok",
+                        "fallback": True,
+                        "grounding": {**response["grounding"], "source_ids": []},
+                    }
                 return response
 
         relaxed = run_evaluation(NeverRefuses(self.assistant), REPOSITORY_ROOT, required_pass_rate=0.5)

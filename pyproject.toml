@@ -5,3 +5,7 @@ description = "A local, provider-neutral, grounded answer assistant."
 requires-python = ">=3.11"
 dependencies = []
 
+
+[tool.ruff]
+# The code base is written to 120 columns; keep it rather than rewrap every file.
+line-length = 120

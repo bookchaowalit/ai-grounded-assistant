@@ -140,4 +140,3 @@ def outcome_metrics(results: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
             "recall": round(true_positive / expected, 4) if expected else None,
         }
     return metrics
-

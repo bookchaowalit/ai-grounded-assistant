@@ -60,7 +60,9 @@ def validate_knowledge_record(value: Any, *, index: int) -> dict[str, str]:
         raise DataContractError("SCHEMA004", "knowledge text exceeds the local context bound", {"index": index})
     source_url = _non_empty_string(record["source_url"], field="source_url", code="SCHEMA003")
     if not source_url.startswith("https://example.invalid/"):
-        raise DataContractError("SCHEMA005", "fixture source_url must use the sanitized example domain", {"index": index})
+        raise DataContractError(
+            "SCHEMA005", "fixture source_url must use the sanitized example domain", {"index": index}
+        )
     title = _non_empty_string(record["title"], field="title", code="SCHEMA003")
     for field, value in (("title", title), ("text", text)):
         if strip_hidden_characters(value)[1] or has_control_characters(value.replace("\n", " ")):
@@ -158,7 +160,11 @@ def validate_manifest(value: Any) -> dict[str, Any]:
         digest = _non_empty_string(manifest[field], field=field, code="LINEAGE015")
         if len(digest) != 64 or any(char not in "0123456789abcdef" for char in digest):
             raise DataContractError("LINEAGE016", f"{field} must be a lowercase SHA-256 digest", {"field": field})
-    if not isinstance(manifest["record_count"], int) or isinstance(manifest["record_count"], bool) or manifest["record_count"] < 0:
+    if (
+        not isinstance(manifest["record_count"], int)
+        or isinstance(manifest["record_count"], bool)
+        or manifest["record_count"] < 0
+    ):
         raise DataContractError("LINEAGE017", "record_count must be a non-negative integer")
     return manifest
 
@@ -184,4 +190,3 @@ def validate_question(value: Any) -> str:
     if has_control_characters(question):
         raise DataContractError("INPUT004", "question contains an unsupported control character")
     return question
-
