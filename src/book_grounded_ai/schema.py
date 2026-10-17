@@ -38,7 +38,7 @@ def _non_empty_string(value: Any, *, field: str, code: str) -> str:
 def _timestamp(value: Any, *, field: str, code: str) -> str:
     result = _non_empty_string(value, field=field, code=code)
     try:
-        parsed = datetime.fromisoformat(result.replace("Z", "+00:00"))
+        parsed = datetime.fromisoformat(result.replace("Z", "+00:00"))  # noqa: FURB162 - keep the explicit UTC normalisation
     except ValueError as exc:
         raise DataContractError(code, f"{field} must be ISO-8601", {"field": field}) from exc
     if parsed.tzinfo is None:
@@ -64,14 +64,14 @@ def validate_knowledge_record(value: Any, *, index: int) -> dict[str, str]:
             "SCHEMA005", "fixture source_url must use the sanitized example domain", {"index": index}
         )
     title = _non_empty_string(record["title"], field="title", code="SCHEMA003")
-    for field, value in (("title", title), ("text", text)):
-        if strip_hidden_characters(value)[1] or has_control_characters(value.replace("\n", " ")):
+    for field, field_value in (("title", title), ("text", text)):
+        if strip_hidden_characters(field_value)[1] or has_control_characters(field_value.replace("\n", " ")):
             raise DataContractError(
                 "SCHEMA014",
                 "knowledge record contains hidden or control characters",
                 {"index": index, "field": field},
             )
-        categories = detect_prompt_injection(value)
+        categories = detect_prompt_injection(field_value)
         if categories:
             # Indirect prompt injection: corpus text is context for a future
             # generative adapter and must never carry instructions.

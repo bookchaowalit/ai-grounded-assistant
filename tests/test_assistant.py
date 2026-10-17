@@ -17,7 +17,6 @@ from book_grounded_ai.schema import DataContractError
 from book_grounded_ai.store import load_corpus
 from book_grounded_ai.telemetry import SafeTelemetrySink
 
-
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 
 
