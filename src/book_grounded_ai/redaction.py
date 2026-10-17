@@ -74,4 +74,3 @@ def redact_question(text: str) -> RedactionResult:
         if count and category not in categories:
             categories.append(category)
     return RedactionResult(redacted, bool(categories), tuple(categories))
-

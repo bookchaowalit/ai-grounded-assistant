@@ -24,4 +24,3 @@ PACKAGE_ROOT = Path(__file__).resolve().parents[1]
 REPOSITORY_ROOT = PACKAGE_ROOT.parent
 MANIFEST_PATH = REPOSITORY_ROOT / "data" / "manifests" / "knowledge_chunks.v1.manifest.json"
 EVALUATION_PATH = REPOSITORY_ROOT / "data" / "evaluation" / "golden_questions.v1.json"
-

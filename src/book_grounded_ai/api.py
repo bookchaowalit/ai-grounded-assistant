@@ -6,16 +6,16 @@ import hmac
 import json
 import threading
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from typing import Any, Callable
+from typing import Any
 from urllib.parse import urlsplit
 
 from .assistant import GroundedAssistant
 from .config import API_VERSION, APP_NAME, MAX_BODY_BYTES
 from .schema import DataContractError, error_payload
 from .store import Corpus, load_corpus
-
 
 # Route access matrix: path -> (access level, the one allowed method, 405
 # message). "public" needs nothing; "reader" needs `Authorization: Bearer
@@ -72,7 +72,9 @@ class _RateLimiter:
             return len(self._events)
 
     def _sweep(self, now: float) -> None:
-        idle = [client for client, events in self._events.items() if not events or now - events[-1] >= self.window_seconds]
+        idle = [
+            client for client, events in self._events.items() if not events or now - events[-1] >= self.window_seconds
+        ]
         for client in idle:
             del self._events[client]
         self._last_sweep = now
@@ -115,7 +117,7 @@ class ApiService:
         # and http.server decodes headers as latin-1, so a crafted header
         # would otherwise crash the request instead of returning 401.
         supplied = headers.get("Authorization", "").encode("utf-8", "surrogateescape")
-        expected = f"Bearer {self.read_token}".encode("utf-8")
+        expected = f"Bearer {self.read_token}".encode()
         return hmac.compare_digest(supplied, expected)
 
     def _body_question(self, headers: dict[str, str], body: bytes | str | None) -> str | Response:
@@ -123,7 +125,9 @@ class ApiService:
             return self._response(400, error_payload("INPUT005", "JSON body is required"))
         raw = body.encode("utf-8") if isinstance(body, str) else body
         if len(raw) > MAX_BODY_BYTES:
-            return self._response(413, error_payload("INPUT006", "request body exceeds the local limit", {"max_bytes": MAX_BODY_BYTES}))
+            return self._response(
+                413, error_payload("INPUT006", "request body exceeds the local limit", {"max_bytes": MAX_BODY_BYTES})
+            )
         content_type = headers.get("Content-Type", "").split(";", 1)[0].strip().lower()
         if content_type != "application/json":
             return self._response(415, error_payload("INPUT007", "Content-Type must be application/json"))
@@ -159,9 +163,11 @@ class ApiService:
             return self._response(404, error_payload("API404", "route not found"))
         level, allowed_method, method_message = route
         if method != allowed_method:
-            return self._response(405, error_payload("API405", method_message), **{"Allow": allowed_method})
+            return self._response(405, error_payload("API405", method_message), Allow=allowed_method)
         if level != PUBLIC and not self._authorized(request_headers):
-            return self._response(401, error_payload("AUTH001", "Bearer authentication required"), **{"WWW-Authenticate": "Bearer"})
+            return self._response(
+                401, error_payload("AUTH001", "Bearer authentication required"), **{"WWW-Authenticate": "Bearer"}
+            )
         if path == "/healthz":
             return self._response(
                 200,
@@ -247,4 +253,3 @@ class DataApiRequestHandler(BaseHTTPRequestHandler):
 
 def create_server(service: ApiService, host: str = "127.0.0.1", port: int = 0) -> DataApiServer:
     return DataApiServer((host, port), service)
-

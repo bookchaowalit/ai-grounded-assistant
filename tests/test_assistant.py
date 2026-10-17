@@ -17,7 +17,6 @@ from book_grounded_ai.schema import DataContractError
 from book_grounded_ai.store import load_corpus
 from book_grounded_ai.telemetry import SafeTelemetrySink
 
-
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -106,8 +105,12 @@ class AssistantContractTests(unittest.TestCase):
             def answer(self, question: str) -> dict:
                 response = self.inner.answer(question)
                 if response["data_status"] == "refused":
-                    return {**response, "data_status": "ok", "fallback": True,
-                            "grounding": {**response["grounding"], "source_ids": []}}
+                    return {
+                        **response,
+                        "data_status": "ok",
+                        "fallback": True,
+                        "grounding": {**response["grounding"], "source_ids": []},
+                    }
                 return response
 
         relaxed = run_evaluation(NeverRefuses(self.assistant), REPOSITORY_ROOT, required_pass_rate=0.5)

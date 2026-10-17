@@ -38,7 +38,7 @@ def _non_empty_string(value: Any, *, field: str, code: str) -> str:
 def _timestamp(value: Any, *, field: str, code: str) -> str:
     result = _non_empty_string(value, field=field, code=code)
     try:
-        parsed = datetime.fromisoformat(result.replace("Z", "+00:00"))
+        parsed = datetime.fromisoformat(result.replace("Z", "+00:00"))  # noqa: FURB162 - keeps Z-normalisation; removing it changes which inputs are accepted
     except ValueError as exc:
         raise DataContractError(code, f"{field} must be ISO-8601", {"field": field}) from exc
     if parsed.tzinfo is None:
@@ -60,16 +60,18 @@ def validate_knowledge_record(value: Any, *, index: int) -> dict[str, str]:
         raise DataContractError("SCHEMA004", "knowledge text exceeds the local context bound", {"index": index})
     source_url = _non_empty_string(record["source_url"], field="source_url", code="SCHEMA003")
     if not source_url.startswith("https://example.invalid/"):
-        raise DataContractError("SCHEMA005", "fixture source_url must use the sanitized example domain", {"index": index})
+        raise DataContractError(
+            "SCHEMA005", "fixture source_url must use the sanitized example domain", {"index": index}
+        )
     title = _non_empty_string(record["title"], field="title", code="SCHEMA003")
-    for field, value in (("title", title), ("text", text)):
-        if strip_hidden_characters(value)[1] or has_control_characters(value.replace("\n", " ")):
+    for field, field_value in (("title", title), ("text", text)):
+        if strip_hidden_characters(field_value)[1] or has_control_characters(field_value.replace("\n", " ")):
             raise DataContractError(
                 "SCHEMA014",
                 "knowledge record contains hidden or control characters",
                 {"index": index, "field": field},
             )
-        categories = detect_prompt_injection(value)
+        categories = detect_prompt_injection(field_value)
         if categories:
             # Indirect prompt injection: corpus text is context for a future
             # generative adapter and must never carry instructions.
@@ -158,7 +160,11 @@ def validate_manifest(value: Any) -> dict[str, Any]:
         digest = _non_empty_string(manifest[field], field=field, code="LINEAGE015")
         if len(digest) != 64 or any(char not in "0123456789abcdef" for char in digest):
             raise DataContractError("LINEAGE016", f"{field} must be a lowercase SHA-256 digest", {"field": field})
-    if not isinstance(manifest["record_count"], int) or isinstance(manifest["record_count"], bool) or manifest["record_count"] < 0:
+    if (
+        not isinstance(manifest["record_count"], int)
+        or isinstance(manifest["record_count"], bool)
+        or manifest["record_count"] < 0
+    ):
         raise DataContractError("LINEAGE017", "record_count must be a non-negative integer")
     return manifest
 
@@ -184,4 +190,3 @@ def validate_question(value: Any) -> str:
     if has_control_characters(question):
         raise DataContractError("INPUT004", "question contains an unsupported control character")
     return question
-

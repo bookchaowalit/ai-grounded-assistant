@@ -73,4 +73,3 @@ class SafeTelemetrySink:
         )
         self.events.append(event)
         return event
-

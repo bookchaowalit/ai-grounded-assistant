@@ -133,4 +133,3 @@ def load_corpus(root: str | Path | None = None) -> Corpus:
         record_count=len(bronze_records),
     )
     return Corpus(schema_version, dataset, tuple(bronze_records), lineage)
-

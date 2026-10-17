@@ -32,25 +32,18 @@ ASK_BODY = json.dumps({"question": "Where should approved source evidence live?"
 
 class RouteAccessMatrixTests(unittest.TestCase):
     def setUp(self) -> None:
-        self.service = ApiService(
-            load_corpus(REPOSITORY_ROOT), read_token=TOKEN, rate_limit=10_000
-        )
+        self.service = ApiService(load_corpus(REPOSITORY_ROOT), read_token=TOKEN, rate_limit=10_000)
 
     def test_table_is_pinned(self) -> None:
         self.assertEqual(
-            {
-                path: (level, method)
-                for path, (level, method, _msg) in ROUTE_ACCESS.items()
-            },
+            {path: (level, method) for path, (level, method, _msg) in ROUTE_ACCESS.items()},
             EXPECTED,
         )
 
     def test_only_get_routes_may_be_public(self) -> None:
         for path, (level, method, _msg) in ROUTE_ACCESS.items():
             if method != "GET":
-                self.assertNotEqual(
-                    level, PUBLIC, f"{method} {path} must require the token"
-                )
+                self.assertNotEqual(level, PUBLIC, f"{method} {path} must require the token")
 
     def test_every_route_method_and_caller(self) -> None:
         callers = {
@@ -77,9 +70,7 @@ class RouteAccessMatrixTests(unittest.TestCase):
         for path in ("/", "/v1", "/v1/ask/extra", "/admin", "/healthz/x"):
             with self.subTest(path=path):
                 self.assertEqual(
-                    self.service.handle(
-                        "GET", path, {"Authorization": f"Bearer {TOKEN}"}
-                    ).status,
+                    self.service.handle("GET", path, {"Authorization": f"Bearer {TOKEN}"}).status,
                     404,
                 )
 
@@ -103,9 +94,7 @@ class UnauthenticatedBindTests(unittest.TestCase):
                         ]
                     )
                 self.assertEqual(code, 2)
-                self.assertEqual(
-                    json.loads(out.getvalue())["error"]["code"], "CONFIG002"
-                )
+                self.assertEqual(json.loads(out.getvalue())["error"]["code"], "CONFIG002")
 
 
 if __name__ == "__main__":
