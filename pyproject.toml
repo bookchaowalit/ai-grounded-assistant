@@ -5,6 +5,11 @@ description = "A local, provider-neutral, grounded answer assistant."
 requires-python = ">=3.11"
 dependencies = []
 
+[dependency-groups]
+# Dev tools pinned to the shared CI versions; `uv sync --frozen` installs them, so CI
+# runs the locked mypy/ruff and OSV-Scanner has real packages to check in uv.lock.
+dev = ["mypy==2.4.0", "ruff==0.17.1"]
+
 
 [tool.ruff]
 # The code base is written to 120 columns; keep it rather than rewrap every file.
