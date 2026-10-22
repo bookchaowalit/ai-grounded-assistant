@@ -16,14 +16,14 @@ concurrency:
 
 jobs:
   assistant:
-    uses: bookchaowalit/platform-ci-workflows/.github/workflows/ci-python.yml@c37ef9d113eefb3ed45429717cb7ca201192c3fc # v1.0.1
+    uses: bookchaowalit/platform-ci-workflows/.github/workflows/ci-python.yml@87dc5e1c7e0416886a6371d5a101bb2ccba38edd # v1.1.1
     with:
       python-version: "3.11" # requires-python >= 3.11; the previous CI ran 3.11
-      # Stdlib-only package (no dependencies, no dev extra).
-      install-command: uv pip install -e .
+      # Stdlib-only package; install-command defaults to "auto" -> `uv sync --frozen --all-extras` from uv.lock.
+      # Typecheck "auto" runs `mypy .` from [tool.mypy] (strict) in pyproject.toml.
       # Same gates as the previous CI: unittest suite, compile + corpus lineage validation,
       # and the golden-question evaluation (including prompt-injection cases).
       test-command: make test check evaluate PYTHON=python
 
   security:
-    uses: bookchaowalit/platform-ci-workflows/.github/workflows/security.yml@c37ef9d113eefb3ed45429717cb7ca201192c3fc # v1.0.1
+    uses: bookchaowalit/platform-ci-workflows/.github/workflows/security.yml@87dc5e1c7e0416886a6371d5a101bb2ccba38edd # v1.1.1
