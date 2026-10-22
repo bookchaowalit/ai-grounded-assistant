@@ -66,6 +66,14 @@ class RouteAccessMatrixTests(unittest.TestCase):
                         else:
                             self.assertEqual(response.status, 401)
 
+    def test_non_string_question_is_a_400_input_error(self) -> None:
+        headers = {"Content-Type": "application/json", "Authorization": f"Bearer {TOKEN}"}
+        for question in (123, None, ["a"], {"q": "x"}):
+            with self.subTest(question=question):
+                response = self.service.handle("POST", "/v1/ask", headers, json.dumps({"question": question}))
+                self.assertEqual(response.status, 400)
+                self.assertEqual(response.payload["error"]["code"], "INPUT001")
+
     def test_unlisted_paths_are_404(self) -> None:
         for path in ("/", "/v1", "/v1/ask/extra", "/admin", "/healthz/x"):
             with self.subTest(path=path):

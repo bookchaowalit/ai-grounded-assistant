@@ -9,3 +9,9 @@ dependencies = []
 [tool.ruff]
 # The code base is written to 120 columns; keep it rather than rewrap every file.
 line-length = 120
+
+[tool.mypy]
+python_version = "3.11"
+files = ["src", "tests"]
+mypy_path = "src"
+strict = true

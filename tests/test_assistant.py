@@ -7,6 +7,7 @@ import sys
 import threading
 import unittest
 from pathlib import Path
+from typing import Any
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
@@ -99,10 +100,10 @@ class AssistantContractTests(unittest.TestCase):
             def __init__(self, inner: GroundedAssistant) -> None:
                 self.inner = inner
 
-            def metadata(self) -> dict:
+            def metadata(self) -> dict[str, Any]:
                 return self.inner.metadata()
 
-            def answer(self, question: str) -> dict:
+            def answer(self, question: str) -> dict[str, Any]:
                 response = self.inner.answer(question)
                 if response["data_status"] == "refused":
                     return {

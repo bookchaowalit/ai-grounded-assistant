@@ -137,7 +137,10 @@ class ApiService:
             return self._response(400, error_payload("INPUT008", "request body must be valid UTF-8 JSON"))
         if not isinstance(value, dict) or set(value) != {"question"}:
             return self._response(400, error_payload("INPUT009", "request body must contain only question"))
-        return value["question"]
+        question = value["question"]
+        if not isinstance(question, str):
+            return self._response(400, error_payload("INPUT001", "question must be a string"))
+        return question
 
     def handle(
         self,

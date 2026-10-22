@@ -75,9 +75,9 @@ class GroundedAssistant:
                 "I can only answer questions from approved context and cannot follow "
                 "instructions embedded in a question."
             )
-            source_ids = ()
+            source_ids: tuple[str, ...] = ()
             outcome = "refused"
-            payload = {
+            payload: dict[str, Any] = {
                 "assistant": APP_NAME,
                 "answer_schema_version": ANSWER_SCHEMA_VERSION,
                 "adapter": MODEL_ADAPTER,
@@ -97,7 +97,7 @@ class GroundedAssistant:
             source_ids = (record["id"],)
             citations = [{"id": record["id"], "title": record["title"], "source_url": record["source_url"]}]
             outcome = "grounded"
-            payload: dict[str, Any] = {
+            payload = {
                 "assistant": APP_NAME,
                 "answer_schema_version": ANSWER_SCHEMA_VERSION,
                 "adapter": MODEL_ADAPTER,

@@ -11,14 +11,14 @@ from .api import ApiService, create_server
 from .config import DEFAULT_HOST, DEFAULT_PORT, LOOPBACK_HOSTS, TOKEN_ENV
 from .evaluation import load_evaluation_cases, run_evaluation
 from .schema import DataContractError
-from .store import load_corpus
+from .store import Corpus, load_corpus
 
 
 def _print(payload: object) -> None:
     print(json.dumps(payload, ensure_ascii=False, sort_keys=True, indent=2))
 
 
-def _corpus(args: argparse.Namespace):
+def _corpus(args: argparse.Namespace) -> Corpus:
     return load_corpus(args.root)
 
 
@@ -81,8 +81,8 @@ def main(argv: list[str] | None = None) -> int:
             _print(response.payload)
             return 0 if response.status == 200 else 1
         if args.command == "ask":
-            response = ApiService(_corpus(args)).assistant.answer(args.question)
-            _print(response)
+            answer = ApiService(_corpus(args)).assistant.answer(args.question)
+            _print(answer)
             return 0
         if args.command == "evaluate":
             service = ApiService(_corpus(args))
@@ -114,7 +114,8 @@ def main(argv: list[str] | None = None) -> int:
                 )
                 return 2
             server = create_server(ApiService(_corpus(args), read_token=token), args.host, args.port)
-            print(f"{server.server_address[0]}:{server.server_address[1]}", flush=True)
+            host, port = server.server_address[:2]
+            print(f"{host!s}:{port}", flush=True)
             try:
                 server.serve_forever()
             except KeyboardInterrupt:
